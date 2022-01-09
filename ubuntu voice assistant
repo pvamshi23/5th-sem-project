@@ -1,0 +1,160 @@
+import pyttsx3
+import speech_recognition as sr
+import datetime,time
+import wikipedia
+import webbrowser
+import os,re
+import smtplib,sys
+import subprocess
+from playsound import playsound
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+from email import encoders
+
+engine = pyttsx3.init('espeak')
+engine.setProperty("rate", 200)
+k=0
+def speak(audio):
+    engine.say(audio)
+    engine.runAndWait()
+
+def wishMe():
+    hour = int(datetime.datetime.now().hour)
+    if hour>=0 and hour<12:
+        speak("good morning")
+    elif hour>=12 and hour<18:
+        speak("good afternoon")
+    else:
+        speak("good evening")
+    speak("hello world. i am Robo. Speed 1 tera byte memory 1 zeta byte.")
+
+
+def takecommand():
+    #it takes microphone input fromm user and returns string output
+
+    r=sr.Recognizer()
+    with sr.Microphone() as source:
+        r.adjust_for_ambient_noise(source)
+        print("listening...")
+        speak("listening...")
+        #r.pause_threshold=1
+        audio=r.listen(source)
+        time.sleep(1)
+
+    try:
+        print("recognizing...")
+        query=r.recognize_google(audio, language='en-us')
+        print(f"user said: {query}\n")
+
+    except Exception as e:
+        #print(e)
+        print("say that again please...")
+        return "none"
+    return query
+
+def sendEmail(to,content):
+    server=smtplib.SMTP('smtp.gmail.com',587)
+    server.ehlo()
+    server.starttls()
+    server.login('1by19cs097@bmsit.in','pujarivamshi@1947')
+    server.sendmail('1by19cs097@bmsit.in',to,content)
+    server.close()
+
+if __name__ == '__main__':
+    speak("welcome Boss")
+    wishMe()
+    #subprocess.run(['rhythmbox'])
+    while True:
+        
+        query = takecommand().lower()
+        query1=query.split()
+        #com=re.compile(r'.com')
+        try:
+           pos=re.search(r'[a-zA-Z]*.com',query)
+           print(pos.group())
+        except:
+           print()
+        #logic for executing tasks based on query
+        if 'close' in query or 'off' in query:
+            subprocess = subprocess.Popen(['ps', '-A'], stdout=subprocess.PIPE)
+            output, error = subprocess.communicate()
+            if 'music' in query:
+                target_process = query.replace("close music","rhythmbox")
+            elif pos.group() in query:
+                target_process=query.replace(query,'firefox')
+            try:    
+            	for line in output.splitlines():
+                    if target_process in str(line):
+                       pid = int(line.split(None, 1)[0])
+                       os.kill(pid, 9)
+            except:
+                speak("how strange things happened. but, don't worry i have managed") 
+        if 'wikipedia' in query:
+            speak('searching wikipedia...')
+            query=query.replace("wikipedia","")
+            results=wikipedia.summary(query,sentences=2)
+            speak("according to wikipedia")
+            speak(results)
+        elif 'open' in query and pos.group() in query:
+            speak("opening....")
+            webbrowser.open(pos.group())
+        elif 'play music' in query or 'start music' in query:
+            os.system('rhythmbox-client --play')
+        elif 'the time'in query:
+            strtime=datetime.datetime.now().strftime("%H hours %M minutes %S seconds")
+            speak(f"the is {strtime}")
+        elif 'run' in query or "execute" in query and ('command' in query or 'commands' in query):
+            speak("ready to execute")
+            while True:
+            	query=takecommand().lower()
+            	cam=re.search(r'gr[a-z]*',query)
+            	try:
+            	       print(cam.group())
+            	       query=query.replace(cam.group(),"grep")
+            	except:
+            	       print()
+            	if "quit" in query or "exit" in query or "close" in query:
+            		break
+            	if "how" in query and ("to" in query or 'do' in query or 'i' in query) and "close" in query:
+            		speak("please speak QUIT to come out of executing commands")
+
+            	#print(f"{query}")
+            	#os.system("gr[a-z]*"
+            	print(f"{query}")
+            	os.system(query)
+        elif 'open pycharm' in query:
+            charm="pycharm-community"
+            os.system(charm)
+        elif 'send email' in query:
+            try:
+                speak("please enter email ID")
+                print("please enter email ID")
+                to=input()
+                msg = MIMEMultipart()
+                msg['From'] = "1by19cs097@bmsit.in"
+                msg['To'] = to
+                speak("enter subject:")
+                print("enter subject:")
+                msg['Subject'] = input()
+                speak("enter content")
+                print("enter content:")
+                body = takecommand()
+                print(body)
+                msg.attach(MIMEText(body, 'plain'))
+                filename = "main.py"
+                attachment = open("/home/pvamshi/main.py", "rb")
+                p = MIMEBase('application', 'octet-stream')
+                p.set_payload((attachment).read())
+                encoders.encode_base64(p)
+                p.add_header('Content-Disposition', "attachment; filename= %s" % filename)
+                msg.attach(p)
+                text = msg.as_string()
+                sendEmail(to,text)
+                speak("Email has been sent!")
+                print("email has been sent")
+            except Exception as e:
+                print(e)
+                speak("sorry bhai")
+        elif 'quit' in query or 'close' in query and 'terminal' in query:
+            quit()
